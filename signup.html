@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Signup Form</title>
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>   
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js"></script>   
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>   
+</head>
+<body>
+
+  <div class="container mx-auto max-w-sm p-4">
+    <h1 class="text-3xl font-bold mb-4">Signup</h1>
+
+    <form id="signup-form" class="flex flex-col gap-4">
+      <label for="signup-name" class="text-sm font-medium">Name:</label>
+      <input type="text" id="signup-name" name="name" required class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-blue-500 focus:ring-1">
+      <label for="signup-email" class="text-sm font-medium">Email:</label>
+      <input type="email" id="signup-email" name="email" required class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-blue-500 focus:ring-1">
+      <label for="signup-password" class="text-sm font-medium">Password:</label>
+      <input type="password" id="signup-password" name="password" required class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-blue-500 focus:ring-1">
+      <label for="profile-photo" class="text-sm font-medium">Profile Photo (optional):</label>
+      <input type="file" id="profile-photo" name="profilePhoto" class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-blue-500 focus:ring-1">
+      <a href="login.html" class="text-blue-500 hover:underline">Have an account? login here</a>
+     
+      <button type="submit" id="signup-btn" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700">Sign Up</button>
+    </form>
+
+    <div id="message" class="text-sm"></div>
+  </div>
+
+  <script type="module">
+    // Import Firebase modules directly from CDN URLs
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+    import { getAuth, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+    import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js';
+  
+    // Your Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyA7uvrwo0k8SirQD7n3p8kPN4ccDn5awDs",
+      authDomain: "lewach-61752.firebaseapp.com",
+      projectId: "lewach-61752",
+      storageBucket: "lewach-61752.appspot.com",
+      messagingSenderId: "549418727877",
+      appId: "1:549418727877:web:cc97163b971deb74e3b3ac",
+      measurementId: "G-E0ZSWHLM9W"
+    };
+  
+    // Initialize Firebase app
+    const app = initializeApp(firebaseConfig);
+  
+    // Get references to Auth, Firestore, and Storage
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+  
+    // Function to handle profile photo upload
+    function handleProfilePhotoUpload(file) {
+      if (!file) {
+        return Promise.resolve(null);
+      }
+
+      const storageRef = ref(storage, `profile_photos/${file.name}`);
+      const storageTask = uploadBytesResumable(storageRef, file);
+
+      return new Promise((resolve, reject) => {
+        storageTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log('Upload progress:', progress + '%');
+          },
+          (error) => {
+            reject(error);
+          },
+          () => {
+            getDownloadURL(storageRef)
+              .then(photoUrl => {
+                resolve(photoUrl);
+              })
+              .catch(error => {
+                reject(error);
+              });
+          }
+        );
+      });
+    }
+  
+    document.addEventListener("DOMContentLoaded", function () {
+      const signupForm = document.getElementById('signup-form');
+      const messageDiv = document.getElementById('message');
+  
+      signupForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Prevent default form submission
+  
+        const name = document.getElementById('signup-name').value;
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const profilePhoto = document.getElementById('profile-photo').files[0];
+  
+        messageDiv.textContent = ''; // Clear any previous messages
+  
+        handleProfilePhotoUpload(profilePhoto)
+          .then(photoUrl => {
+            return createUserWithEmailAndPassword(auth, email, password)
+              .then(userCredential => {
+                const user = userCredential.user;
+
+                // Save user data in Firestore
+                return setDoc(doc(db, "users", user.uid), {
+                  name: name,
+                  email: email,
+                  profilePhoto: photoUrl || null, // Store the profile photo URL if uploaded
+                  uid: user.uid
+                });
+              });
+          })
+          .then(() => {
+            messageDiv.textContent = "Sign up successful! Please log in.";
+            messageDiv.style.color = 'green';
+            setTimeout(() => {
+              window.location.href = 'login.html'; // Redirect to login after successful signup
+            }, 1000);
+          })
+          .catch(error => {
+            messageDiv.textContent = "Error: " + error.message;
+            messageDiv.style.color = 'red';
+          });
+      });
+    });
+  </script>
+</body>
+</html>

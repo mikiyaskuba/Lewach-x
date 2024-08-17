@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="" />
+   <link rel="stylesheet" as="style" onload="this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Be+Vietnam+Pro%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" />
+   <title>Galileo Design</title>
+   <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
+   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+   <!-- Firebase SDK -->
+   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-storage.js"></script>
+</head>
+<body>
+   <div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden" style='font-family: "Be Vietnam Pro", "Noto Sans", sans-serif;'>
+      <div class="layout-container flex h-full grow flex-col">
+         <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f0f2f4] px-10 py-3">
+            <div class="flex items-center gap-4 text-[#111418]">
+               <div class="size-4">
+                  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                     <path d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z" fill="currentColor"></path>
+                  </svg>
+               </div>
+               <h2 class="text-[#111418] text-lg font-bold leading-tight tracking-[-0.015em]">SwapIt</h2>
+            </div>
+            <div class="flex flex-1 justify-end gap-8">
+               <button id="postButton" class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#1980e6] text-white text-sm font-bold leading-normal tracking-[0.015em]">
+                  <span class="truncate">Post</span>
+               </button>
+               <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style='background-image: url("https://cdn.usegalileo.ai/stability/aab6557f-8f20-4818-9f28-fa5feb1d3d79.png");'></div>
+            </div>
+         </header>
+         <div class="px-40 flex flex-1 justify-center py-5">
+            <div class="layout-content-container flex flex-col w-[512px] max-w-[512px] py-5 max-w-[960px] flex-1">
+               <div class="flex flex-wrap justify-between gap-3 p-4">
+                  <div class="flex min-w-72 flex-col gap-3">
+                     <p class="text-[#111418] tracking-light text-[32px] font-bold leading-tight">Create a post</p>
+                     <p class="text-[#637588] text-sm font-normal leading-normal">Post an item to swap</p>
+                  </div>
+               </div>
+               <div class="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                  <label class="flex flex-col min-w-40 flex-1">
+                     <p class="text-[#111418] text-base font-medium leading-normal pb-2">Title</p>
+                     <input id="titleInput" placeholder="What are you offering?" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] focus:border-none h-14 placeholder:text-[#637588] p-4 text-base font-normal leading-normal" />
+                  </label>
+               </div>
+               <div class="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                  <label class="flex flex-col min-w-40 flex-1">
+                     <p class="text-[#111418] text-base font-medium leading-normal pb-2">Description</p>
+                     <textarea id="descriptionInput" placeholder="Tell us more about your item" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] focus:border-none min-h-36 placeholder:text-[#637588] p-4 text-base font-normal leading-normal"></textarea>
+                  </label>
+               </div>
+               <div class="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                  <label class="flex flex-col min-w-40 flex-1">
+                     <p class="text-[#111418] text-base font-medium leading-normal pb-2">Image</p>
+                     <input id="imageInput" type="file" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] focus:border-none h-14 placeholder:text-[#637588] p-4 text-base font-normal leading-normal" />
+                  </label>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <!-- Firebase Integration -->
+      <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.16.0/firebase-storage.js';
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyA7uvrwo0k8SirQD7n3p8kPN4ccDn5awDs",
+          authDomain: "lewach-61752.firebaseapp.com",
+          projectId: "lewach-61752",
+          storageBucket: "lewach-61752.appspot.com",
+          messagingSenderId: "549418727877",
+          appId: "1:549418727877:web:cc97163b971deb74e3b3ac",
+          measurementId: "G-E0ZSWHLM9W"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        async function createPost(title, description, imageUrl) {
+          try {
+            const docRef = await addDoc(collection(db, "posts"), {
+              title: title,
+              description: description,
+              imageUrl: imageUrl,
+              timestamp: serverTimestamp()
+            });
+            console.log("Document written with ID: ", docRef.id);
+            return true;
+          } catch (e) {
+            console.error("Error adding document: ", e);
+            return false;
+          }
+        }
+
+        async function uploadImage(file) {
+          try {
+            const storageRef = ref(storage, `images/${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            return url;
+          } catch (e) {
+            console.error("Error uploading image: ", e);
+            return null;
+          }
+        }
+
+        const postButton = document.getElementById("postButton");
+        postButton.addEventListener("click", async function () {
+          const title = document.getElementById("titleInput").value;
+          const description = document.getElementById("descriptionInput").value;
+          const imageFile = document.getElementById("imageInput").files[0];
+
+          let imageUrl = null;
+
+          if (imageFile) {
+            imageUrl = await uploadImage(imageFile);
+          }
+
+          const success = await createPost(title, description, imageUrl);
+
+          if (success) {
+            alert("Post added successfully!");
+          } else {
+            alert("Failed to add post.");
+          }
+        });
+      </script>
+   </div>
+</body>
+</html>
